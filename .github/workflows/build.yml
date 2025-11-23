@@ -1,0 +1,30 @@
+name: Build XNA minimal
+on: [ push, pull_request ]
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Build
+      run: msbuild -p:Configuration=Release -p:Platform=x86
+
+    # 把编译结果 + 本地 XNA DLL 一起打包
+    - name: Prepare artifact
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Path ./publish
+        Copy-Item bin/x86/Release/* ./publish -Recurse
+        # 如果 libs 目录里有运行时 DLL 也一起带过去
+        if (Test-Path libs) { Copy-Item libs ./publish -Recurse -Force }
+
+    # 上传 artifact
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: XnaSanityCheck
+        path: publish/
